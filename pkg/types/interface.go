@@ -58,6 +58,7 @@ type Options struct {
 	CaidoHostname                    string              `yaml:"caido-hostname"`
 	CaidoPort                        int                 `yaml:"caido-port"`
 	OverrideContentCheckInterval     time.Duration       `yaml:"override-content-check-interval"`
+	ProxyURL                         string              `yaml:"proxy-url"`
 }
 
 // AssetService interface

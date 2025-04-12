@@ -107,6 +107,7 @@ func initJxscout(options jxscouttypes.Options) (*jxscout, error) {
 	assetFetcher := assetfetcher.NewAssetFetcher(assetfetcher.AssetFetcherOptions{
 		RateLimitingMaxRequestsPerMinute: options.RateLimitingMaxRequestsPerMinute,
 		RateLimitingMaxRequestsPerSecond: options.RateLimitingMaxRequestsPerSecond,
+		ProxyURL:                        options.ProxyURL,
 	})
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -5,9 +5,11 @@ import (
 	"compress/gzip"
 	"context"
 	"crypto/tls"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -29,32 +31,46 @@ type assetFetcherImpl struct {
 type AssetFetcherOptions struct {
 	RateLimitingMaxRequestsPerMinute int
 	RateLimitingMaxRequestsPerSecond int
+	ProxyURL                        string
 }
 
 func NewAssetFetcher(options AssetFetcherOptions) *assetFetcherImpl {
 	// taken from https://github.com/sweetbbak/go-cloudflare-bypass
 	tlsConfig := http.DefaultTransport.(*http.Transport).TLSClientConfig
 
-	c := &http.Client{
-		Transport: &http.Transport{
-			TLSHandshakeTimeout: 30 * time.Second,
-			DisableKeepAlives:   false,
+	transport := &http.Transport{
+		TLSHandshakeTimeout: 30 * time.Second,
+		DisableKeepAlives:   false,
 
-			TLSClientConfig: &tls.Config{
-				CipherSuites: []uint16{
-					tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-					tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-					tls.TLS_AES_128_GCM_SHA256,
-					tls.VersionTLS13,
-					tls.VersionTLS10,
-				},
-				InsecureSkipVerify: true, // Disable certificate verification
+		TLSClientConfig: &tls.Config{
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_AES_128_GCM_SHA256,
+				tls.VersionTLS13,
+				tls.VersionTLS10,
 			},
-			DialTLS: func(network, addr string) (net.Conn, error) {
-				return tls.Dial(network, addr, tlsConfig)
-			},
+			InsecureSkipVerify: true, // Disable certificate verification
 		},
+		DialTLS: func(network, addr string) (net.Conn, error) {
+			return tls.Dial(network, addr, tlsConfig)
+		},
+	}
+
+	// Configure proxy if provided
+	if options.ProxyURL != "" {
+		proxyURL, err := url.Parse(options.ProxyURL)
+		if err != nil {
+			// Log error but continue without proxy
+			fmt.Printf("Invalid proxy URL: %v\n", err)
+		} else {
+			transport.Proxy = http.ProxyURL(proxyURL)
+		}
+	}
+
+	c := &http.Client{
+		Transport: transport,
 	}
 
 	var rateLimiter ratelimit.Limiter

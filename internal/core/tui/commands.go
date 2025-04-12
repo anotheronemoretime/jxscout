@@ -184,6 +184,8 @@ func (t *TUI) RegisterDefaultCommands() {
 						currentOptions.CaidoPort = constants.DefaultCaidoPort
 					case constants.FlagOverrideContentCheckInterval:
 						currentOptions.OverrideContentCheckInterval = constants.DefaultOverrideContentCheckInterval
+					case constants.FlagProxyURL:
+						currentOptions.ProxyURL = constants.DefaultProxyURL
 					default:
 						return nil, fmt.Errorf("unknown option: %s", option)
 					}
@@ -242,6 +244,8 @@ func (t *TUI) RegisterDefaultCommands() {
 					currentOptions.Port = port
 				case constants.FlagHostname:
 					currentOptions.Hostname = value
+				case constants.FlagProxyURL:
+					currentOptions.ProxyURL = value
 				case constants.FlagProjectName:
 					currentOptions.ProjectName = value
 				case constants.FlagDebug:
@@ -343,6 +347,7 @@ func (t *TUI) RegisterDefaultCommands() {
 					}
 					currentOptions.OverrideContentCheckInterval = duration
 				default:
+					return nil, fmt.Errorf("unknown option: %s", option)
 				}
 			}
 
@@ -405,6 +410,7 @@ func (t *TUI) RegisterDefaultCommands() {
 				CaidoHostname:                    constants.DefaultCaidoHostname,
 				CaidoPort:                        constants.DefaultCaidoPort,
 				OverrideContentCheckInterval:     constants.DefaultOverrideContentCheckInterval,
+				ProxyURL:                         constants.DefaultProxyURL,
 			}
 
 			// Restart jxscout with default options
@@ -1149,6 +1155,11 @@ func (t *TUI) printCurrentConfig() {
 		constants.FlagPort,
 		fmt.Sprintf("%d", currentOptions.Port),
 		descStyle.Render(constants.DescriptionPort)))
+
+	t.writeLineToOutput(formatLine(
+		constants.FlagProxyURL,
+		currentOptions.ProxyURL,
+		descStyle.Render(constants.DescriptionProxyURL)))
 
 	// Jxscout configuration
 	t.writeLineToOutput(formatLine(

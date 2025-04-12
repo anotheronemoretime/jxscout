@@ -24,6 +24,7 @@ func main() {
 	flagSet.CreateGroup("server", "server configuration",
 		flagSet.StringVar(&options.Hostname, constants.FlagHostname, constants.DefaultHostname, constants.DescriptionHostname),
 		flagSet.IntVar(&options.Port, constants.FlagPort, constants.DefaultPort, constants.DescriptionPort),
+		flagSet.StringVar(&options.ProxyURL, constants.FlagProxyURL, constants.DefaultProxyURL, constants.DescriptionProxyURL),
 	)
 
 	flagSet.CreateGroup("jxscout", "jxscout configuration",

@@ -11,6 +11,7 @@ const (
 	// Server configuration
 	DefaultPort     = 3333
 	DefaultHostname = "localhost"
+	DefaultProxyURL = ""
 
 	// Jxscout configuration
 	DefaultProjectName = "default"
@@ -54,6 +55,7 @@ const (
 	// Server configuration
 	FlagPort     = "port"
 	FlagHostname = "hostname"
+	FlagProxyURL = "proxy-url"
 
 	// Jxscout configuration
 	FlagProjectName = "project-name"
@@ -98,6 +100,7 @@ const (
 	// Server configuration
 	DescriptionHostname = "the hostname where jxscout will listen for requests"
 	DescriptionPort     = "the port where jxscout will listen for requests"
+	DescriptionProxyURL = "proxy URL to use for HTTP requests (e.g. http://proxy:8080, socks5://proxy:1080)"
 
 	// Jxscout configuration
 	DescriptionProjectName = "name of your project folder where downloaded files will be stored"
