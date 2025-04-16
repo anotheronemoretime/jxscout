@@ -6,33 +6,63 @@ import {
   identifyChunkLoadingFunctionAndExpression,
 } from "./fingerprinting";
 import { getChunkFunctionCode } from "./transformer";
+import { ChunkLoader, ChunkLoaderOptions } from "./chunk-loader";
 
-export const discoverChunks = (
+export const discoverChunks = async (
   code: string,
   bruteforceLimit: number
-): string[] => {
-  let sourceType: "module" | "script" = "script";
-  let ast: Program;
-
+): Promise<string[]> => {
   try {
-    ast = parse(code, {
-      ecmaVersion: "latest",
-      sourceType: "module",
-    });
-    sourceType = "module";
-  } catch (err) {
-    ast = parse(code, {
-      ecmaVersion: "latest",
-      sourceType: "script",
-    });
-  }
+    let sourceType: "module" | "script" = "script";
+    let ast: Program;
 
-  const webpackChunks = webpackCunkDiscovery(ast, sourceType, bruteforceLimit);
-  if (webpackChunks.length !== 0) {
-    return webpackChunks;
-  }
+    try {
+      ast = parse(code, {
+        ecmaVersion: "latest",
+        sourceType: "module",
+      });
+      sourceType = "module";
+    } catch (err) {
+      ast = parse(code, {
+        ecmaVersion: "latest",
+        sourceType: "script",
+      });
+    }
 
-  return viteChunkDiscovery(ast, sourceType, bruteforceLimit);
+    // Initialize chunk loader
+    const chunkLoader = new ChunkLoader({
+      basePath: "",
+      fileExtension: ".js",
+      bruteforceLimit,
+    });
+
+    // Try to discover chunks using the new loader
+    const loaderChunks = await chunkLoader.discoverChunks(code, ast);
+    
+    // Combine with existing discovery methods
+    const webpackChunks = webpackCunkDiscovery(ast, sourceType, bruteforceLimit);
+    const viteChunks = viteChunkDiscovery(ast, sourceType, bruteforceLimit);
+
+    // Combine all discovered chunks and filter out Node.js internal modules
+    const allChunks = new Set([
+      ...(Array.isArray(loaderChunks) ? loaderChunks : []),
+      ...(Array.isArray(webpackChunks) ? webpackChunks : []),
+      ...(Array.isArray(viteChunks) ? viteChunks : []),
+    ].filter(chunk => {
+      // Filter out Node.js internal modules and common build tools
+      return !chunk.match(/^(buffer|crypto|events|fs|http|https|os|path|querystring|stream|string_decoder|url|util|zlib|next\/dist\/compiled\/@ampproject\/toolbox-optimizer|critters)$/);
+    }));
+
+    // If we have Vite chunks, return them directly
+    if (viteChunks && viteChunks.length > 0) {
+      return viteChunks;
+    }
+
+    return Array.from(allChunks);
+  } catch (error) {
+    console.error("Error discovering chunks:", error);
+    return [];
+  }
 };
 
 const viteChunkDiscovery = (

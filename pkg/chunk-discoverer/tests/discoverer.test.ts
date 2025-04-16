@@ -713,9 +713,9 @@ const testCases: DiscovererTestCase[] = [
 
 test.each(testCases)(
   "discoverer - $jsFileName",
-  ({ jsFileName, expectedChunks }) => {
+  async ({ jsFileName, expectedChunks }) => {
     const code = readFile(path.join(__dirname, "files", jsFileName));
-    const chunks = discoverChunks(code, 5);
+    const chunks = await discoverChunks(code, 5);
 
     expect(chunks.sort()).toEqual(expectedChunks.sort());
   }
