@@ -45,6 +45,13 @@ Once jxscout is running, you can:
 - Run the `guide` command for a quick walkthrough
 - Watch the video tutorial for a visual guide on configuring and using jxscout
 
+## Docker
+
+```bash
+docker build --platform linux/amd64 -t jxscout .
+docker run -p 3333:3333 -e JXSCOUT_PROXY_URL="http://<IP>:<PORT>" -e JXSCOUT_DEBUG="true" -v /PATH/ON/HOST:/root/jxscout/default -d -it --name jxscout jxscout
+```
+
 ### Demo
 
 Watch the demo movie to see jxscout in action:
