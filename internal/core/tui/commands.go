@@ -186,6 +186,8 @@ func (t *TUI) RegisterDefaultCommands() {
 						currentOptions.OverrideContentCheckInterval = constants.DefaultOverrideContentCheckInterval
 					case constants.FlagProxyURL:
 						currentOptions.ProxyURL = constants.DefaultProxyURL
+					case constants.FlagASTAnalyzerConcurrency:
+						currentOptions.ASTAnalyzerConcurrency = constants.DefaultASTAnalyzerConcurrency
 					default:
 						return nil, fmt.Errorf("unknown option: %s", option)
 					}
@@ -278,6 +280,12 @@ func (t *TUI) RegisterDefaultCommands() {
 						return nil, fmt.Errorf("invalid chunk-discoverer-concurrency value: %s", value)
 					}
 					currentOptions.ChunkDiscovererConcurrency = concurrency
+				case constants.FlagASTAnalyzerConcurrency:
+					concurrency, err := strconv.Atoi(value)
+					if err != nil {
+						return nil, fmt.Errorf("invalid ast-analyzer-concurrency value: %s", value)
+					}
+					currentOptions.ASTAnalyzerConcurrency = concurrency
 				case constants.FlagChunkDiscovererBruteForceLimit:
 					limit, err := strconv.Atoi(value)
 					if err != nil {
@@ -398,6 +406,7 @@ func (t *TUI) RegisterDefaultCommands() {
 				AssetFetchConcurrency:            constants.DefaultAssetFetchConcurrency,
 				BeautifierConcurrency:            constants.DefaultBeautifierConcurrency,
 				ChunkDiscovererConcurrency:       constants.DefaultChunkDiscovererConcurrency,
+				ASTAnalyzerConcurrency:           constants.DefaultASTAnalyzerConcurrency,
 				ChunkDiscovererBruteForceLimit:   constants.DefaultChunkDiscovererBruteForceLimit,
 				JavascriptRequestsCacheTTL:       constants.DefaultJavascriptRequestsCacheTTL,
 				HTMLRequestsCacheTTL:             constants.DefaultHTMLRequestsCacheTTL,
@@ -1207,7 +1216,11 @@ func (t *TUI) printCurrentConfig() {
 		fmt.Sprintf("%d", currentOptions.ChunkDiscovererConcurrency),
 		descStyle.Render(constants.DescriptionChunkDiscovererConcurrency)))
 
-	// Chunk discovery configuration
+	t.writeLineToOutput(formatLine(
+		constants.FlagASTAnalyzerConcurrency,
+		fmt.Sprintf("%d", currentOptions.ASTAnalyzerConcurrency),
+		descStyle.Render(constants.DescriptionASTAnalyzerConcurrency)))
+
 	t.writeLineToOutput(formatLine(
 		constants.FlagChunkDiscovererBruteForceLimit,
 		fmt.Sprintf("%d", currentOptions.ChunkDiscovererBruteForceLimit),
