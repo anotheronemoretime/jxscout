@@ -17,7 +17,11 @@ WORKDIR /app
 COPY . .
 
 RUN make install
+RUN make clean
 RUN make build
+
+RUN apt-get update && apt-get install -y gcc libsqlite3-dev
+RUN go build -o ./dist/jxscout ./cmd/jxscout
 
 RUN mkdir -p /home/bun/jxscout/default
 
