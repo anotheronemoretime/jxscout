@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
-	"path"
 	"path/filepath"
+	"regexp"
+	"runtime"
 	"strings"
 
 	"github.com/francisconeves97/jxscout/internal/core/errutil"
@@ -27,8 +28,11 @@ type SaveFileRequest struct {
 
 type FileService interface {
 	Save(ctx context.Context, req SaveFileRequest) (string, error)
+	SimpleSave(path string, content string) (string, error)
 	SaveInSubfolder(ctx context.Context, subfolder string, req SaveFileRequest) (string, error)
 	UpdateWorkingDirectory(newPath string)
+	URLToPath(pathURL string) (string, error)
+	FileExists(pathURL string) (bool, error)
 }
 
 type fileServiceImpl struct {
@@ -60,8 +64,30 @@ func (s *fileServiceImpl) Save(ctx context.Context, req SaveFileRequest) (string
 	return s.save(ctx, filePath, req)
 }
 
+func cleanWindows(p string) string {
+	// This regex should ideally only be applied to the filename component, not the whole path.
+	// Applying to the whole path might remove valid characters from directory names if they are unusual.
+	// However, keeping original logic for now.
+	m1 := regexp.MustCompile(`[?%*|:"<>()]`)
+	return m1.ReplaceAllString(p, "")
+}
+
 func (s *fileServiceImpl) save(ctx context.Context, filePath []string, req SaveFileRequest) (string, error) {
-	parsedURL, err := url.Parse(req.PathURL)
+	targetPath, err := s.urlToPath(req.PathURL, filePath)
+	if err != nil {
+		return "", errutil.Wrap(err, "failed to convert url to path")
+	}
+
+	targetPath, err = s.SimpleSave(targetPath, req.Content)
+	if err != nil {
+		return "", errutil.Wrap(err, "failed to write file")
+	}
+
+	return targetPath, nil
+}
+
+func (s *fileServiceImpl) urlToPath(pathURL string, filePath []string) (string, error) {
+	parsedURL, err := url.Parse(pathURL)
 	if err != nil {
 		return "", errutil.Wrap(err, "failed to parse url")
 	}
@@ -74,26 +100,56 @@ func (s *fileServiceImpl) save(ctx context.Context, filePath []string, req SaveF
 	filePath = append(filePath, pathParts...)
 
 	targetPath := filepath.Join(filePath...)
-	err = s.writeToFile(targetPath, req.Content)
-	if err != nil {
-		return "", errutil.Wrap(err, "failed to write file")
+
+	if runtime.GOOS == "windows" {
+		base := filepath.Base(targetPath)
+		dir := filepath.Dir(targetPath)
+		cleanedBase := cleanWindows(base)
+		targetPath = filepath.Join(dir, cleanedBase)
 	}
+
+	targetPath = filepath.Clean(targetPath)
 
 	return targetPath, nil
 }
 
-func (s *fileServiceImpl) writeToFile(filePath string, content string) error {
-	dir := path.Dir(filePath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return errutil.Wrap(err, "failed to create directory")
+func (s *fileServiceImpl) URLToPath(pathURL string) (string, error) {
+	return s.urlToPath(pathURL, []string{
+		s.workingDirectory,
+	})
+}
+
+func (s *fileServiceImpl) FileExists(pathURL string) (bool, error) {
+	filePath, err := s.URLToPath(pathURL)
+	if err != nil {
+		return false, errutil.Wrap(err, "failed to convert url to path")
 	}
+
+	_, err = os.Stat(filePath)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+
+	return false, errutil.Wrap(err, "failed to check if file exists")
+}
+
+func (s *fileServiceImpl) SimpleSave(filePath string, content string) (string, error) {
+	dir := filepath.Dir(filePath)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return filePath, errutil.Wrap(err, "failed to create directory")
+	}
+
+	s.log.Debug("saving to file", "filepath", filePath, "dir", dir)
 
 	err := os.WriteFile(filePath, []byte(content), 0644)
 	if err != nil {
-		return errutil.Wrap(err, "failed to create file and write content")
+		return filePath, errutil.Wrap(err, "failed to create file and write content")
 	}
 
-	return nil
+	return filePath, nil
 }
 
 func (s *fileServiceImpl) UpdateWorkingDirectory(path string) {
