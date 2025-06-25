@@ -23,16 +23,13 @@ type SaveFileRequest struct {
 	// because in reality this will be a URL
 	PathURL string
 	// Content is the file content
-	Content string
+	Content *string
 }
 
 type FileService interface {
-	Save(ctx context.Context, req SaveFileRequest) (string, error)
-	SimpleSave(path string, content string) (string, error)
 	SaveInSubfolder(ctx context.Context, subfolder string, req SaveFileRequest) (string, error)
 	UpdateWorkingDirectory(newPath string)
-	URLToPath(pathURL string) (string, error)
-	FileExists(pathURL string) (bool, error)
+	FileExists(pathURL string, subfolder string) (bool, error)
 }
 
 type fileServiceImpl struct {
@@ -51,14 +48,6 @@ func (s *fileServiceImpl) SaveInSubfolder(ctx context.Context, subfolder string,
 	filePath := []string{
 		s.workingDirectory,
 		subfolder,
-	}
-
-	return s.save(ctx, filePath, req)
-}
-
-func (s *fileServiceImpl) Save(ctx context.Context, req SaveFileRequest) (string, error) {
-	filePath := []string{
-		s.workingDirectory,
 	}
 
 	return s.save(ctx, filePath, req)
@@ -113,14 +102,15 @@ func (s *fileServiceImpl) urlToPath(pathURL string, filePath []string) (string, 
 	return targetPath, nil
 }
 
-func (s *fileServiceImpl) URLToPath(pathURL string) (string, error) {
+func (s *fileServiceImpl) URLToPath(pathURL string, subfolder string) (string, error) {
 	return s.urlToPath(pathURL, []string{
 		s.workingDirectory,
+		subfolder,
 	})
 }
 
-func (s *fileServiceImpl) FileExists(pathURL string) (bool, error) {
-	filePath, err := s.URLToPath(pathURL)
+func (s *fileServiceImpl) FileExists(pathURL string, subfolder string) (bool, error) {
+	filePath, err := s.URLToPath(pathURL, subfolder)
 	if err != nil {
 		return false, errutil.Wrap(err, "failed to convert url to path")
 	}
@@ -136,7 +126,7 @@ func (s *fileServiceImpl) FileExists(pathURL string) (bool, error) {
 	return false, errutil.Wrap(err, "failed to check if file exists")
 }
 
-func (s *fileServiceImpl) SimpleSave(filePath string, content string) (string, error) {
+func (s *fileServiceImpl) SimpleSave(filePath string, content *string) (string, error) {
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return filePath, errutil.Wrap(err, "failed to create directory")
@@ -144,7 +134,7 @@ func (s *fileServiceImpl) SimpleSave(filePath string, content string) (string, e
 
 	s.log.Debug("saving to file", "filepath", filePath, "dir", dir)
 
-	err := os.WriteFile(filePath, []byte(content), 0644)
+	err := os.WriteFile(filePath, []byte(*content), 0644)
 	if err != nil {
 		return filePath, errutil.Wrap(err, "failed to create file and write content")
 	}

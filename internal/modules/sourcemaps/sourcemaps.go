@@ -28,8 +28,8 @@ var sourcemapsBinary []byte
 var mappingsWasm []byte
 
 const (
-	sourceMapsFolder   = "sourcemaps"
-	sourceMapsReversed = "reversed"
+	SourceMapsFolder   = "sourcemaps"
+	SourceMapsReversed = "reversed"
 )
 
 type sourceMapsModule struct {
@@ -59,7 +59,7 @@ func (m *sourceMapsModule) Initialize(sdk *jxscouttypes.ModuleSDK) error {
 		}
 	}()
 
-	saveDir := filepath.Join(common.GetPrivateDirectory(), "extracted")
+	saveDir := filepath.Join(common.GetPrivateDirectoryRoot(), "extracted")
 
 	// Create the directory if it doesn't exist
 	if err := os.MkdirAll(saveDir, 0755); err != nil {
@@ -147,9 +147,9 @@ func (s *sourceMapsModule) sourceMapDiscover(ctx context.Context, asset assetser
 		urlToSave = fmt.Sprintf("%s.map", asset.URL)
 	}
 
-	filePath, err := s.sdk.FileService.SaveInSubfolder(ctx, sourceMapsFolder, assetservice.SaveFileRequest{
+	filePath, err := s.sdk.FileService.SaveInSubfolder(ctx, SourceMapsFolder, assetservice.SaveFileRequest{
 		PathURL: urlToSave,
-		Content: sourceMap.OriginalContent,
+		Content: &sourceMap.OriginalContent,
 	})
 	if err != nil {
 		return dbeventbus.NewRetriableError(errors.Wrapf(err, "failed to save source map for asset %s", asset.URL))
@@ -176,10 +176,10 @@ func (s *sourceMapsModule) sourceMapDiscover(ctx context.Context, asset assetser
 	// }
 
 	reverseSourceMapsDir := []string{
-		common.GetWorkingDirectory(),
-		s.sdk.Options.ProjectName,
-		sourceMapsFolder,
-		sourceMapsReversed,
+		common.GetWorkingDirectory(s.sdk.Options.ProjectName),
+		SourceMapsFolder,
+		SourceMapsReversed,
+		sourceMap.URL.Host,
 	}
 
 	// reverseSourceMapsDir = append(reverseSourceMapsDir, assetPath...)
